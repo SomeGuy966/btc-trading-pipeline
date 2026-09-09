@@ -2,9 +2,8 @@ name: Ruff + Mypy
 
 on:
   push:
-    branches: ["tony/dummy-pr"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "tony/dummy-pr"]
 
 jobs:
   lint:

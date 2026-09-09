@@ -2,9 +2,8 @@ name: Clang Format & Tidy
 
 on:
   push:
-    branches: ["tony/dummy-pr"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "tony/dummy-pr"]
 
 jobs:
   clang_checks:

@@ -2,9 +2,8 @@ name: C++ Tests
 
 on:
   push:
-    branches: ["tony/dummy-pr"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "tony/dummy-pr"]
 
 jobs:
   cpptest:
