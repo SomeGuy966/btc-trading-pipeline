@@ -1,42 +1,26 @@
-.PHONY: build install test clean lint format
+.PHONY: install build test test-cpp test-py clean lint format run record replay analyze benchmark benchmark-replay
 
 RELEASE_TYPE = Release
 PY_SRC = src/pysrc
 CPP_SRC = src/cppsrc
-
-build: install
-	@mkdir -p build
-	cd build && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(RELEASE_TYPE)/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=$(RELEASE_TYPE) -G Ninja
-	cd build && cmake --build .
-	# The pybind module is already emitted to $(PY_SRC) by CMake; no copy needed.
+TICKS   = ticks.jsonl
 
 install:
 	conan install . --build=missing
 	poetry install
 
-
-
-
-
-.PHONY: test test-cpp test-py
-
-TOOLCHAIN := build/build/Debug/generators/conan_toolchain.cmake
-GENPFX   := build/build/Debug/generators
+build: install
+	@mkdir -p build
+	cd build && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(RELEASE_TYPE)/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=$(RELEASE_TYPE) -G Ninja
+	cd build && cmake --build .
 
 test: test-cpp test-py
 
 test-cpp: build
-# 	@[ -f $(TOOLCHAIN) ] || conan install . -of build/build -s build_type=Debug -g CMakeDeps -g CMakeToolchain
-# 	@cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
-# 		-DCMAKE_TOOLCHAIN_FILE=$(PWD)/$(TOOLCHAIN) \
-# 		-DCMAKE_PREFIX_PATH=$(PWD)/$(GENPFX)
-# 	@cmake --build build -j
 	@ctest --test-dir build --output-on-failure
 
 test-py: build
-# 	@cmake --build build -j --target intern
-	@PYTHONPATH="$(PWD)/src/pysrc:$(PWD)/src:$$PYTHONPATH" poetry run pytest -q
-
+	@PYTHONPATH="$(PWD)/src:$$PYTHONPATH" poetry run pytest -q $(PY_SRC)/test
 
 clean:
 	@rm -rf build
@@ -52,8 +36,24 @@ format:
 	poetry run ruff format $(PY_SRC)
 	poetry run ruff check --fix $(PY_SRC)
 
-run-main:
-	poetry run python src/pysrc/main.py
+# Live run, bounded so it terminates.
+run:
+	poetry run python -m pysrc.main --max-ticks 20
+
+# Capture a live session to $(TICKS) for offline replay.
+record:
+	poetry run python -m pysrc.main --record $(TICKS) --max-ticks 60
+
+# Replay a recorded session: fast, offline, reproducible.
+replay:
+	poetry run python -m pysrc.main --replay $(TICKS) --quiet
 
 analyze:
-	poetry run python src/pysrc/evaluate_predictions.py
+	poetry run python -m pysrc.evaluate_predictions
+
+# Synthetic ticks by default so this works without a recording.
+benchmark:
+	poetry run python -m pysrc.benchmark
+
+benchmark-replay:
+	poetry run python -m pysrc.benchmark --replay $(TICKS)

@@ -1,4 +1,5 @@
 // src/cppsrc/main.cpp
+// pybind11 bindings for the C++ core: order-flow features and the REST client.
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -7,59 +8,52 @@
 #include "feature_count_trades.hpp"
 #include "feature_ratio_buys.hpp"
 #include "feature_ratio_sells.hpp"
+#include "feature_set.hpp"
 #include "feature_volume_window.hpp"
 
+#include <string>
 #include <tuple>
 #include <vector>
 
 namespace py = pybind11;
-using Trade = std::tuple<float, float, bool>;// (price, volume, is_buy)
 
-// Keep this so your current Python test passes.
-int add(int a, int b)
+PYBIND11_MODULE(cppcore, m)
 {
-    return a + b;
-}
+    m.doc() = "C++ core: order-flow feature computation and Gemini REST client.";
 
-// Stub main so the executable target 'intern_project' links
-int main()
-{
-    return 0;
-}
+    // Bind the abstract base first so the derived bindings can reference it.
+    py::class_<btcpipe::BaseFeature>(m, "BaseFeature");
 
-// Pybind module name stays 'my_intern'
-PYBIND11_MODULE(intern, m)
-{
-    m.doc() = "Step 2 features (friend-style binding, base first)";
-
-
-    // 1) Bind the base FIRST so pybind knows it
-    py::class_<intproj::BaseFeature>(m, "BaseFeature");// no __init__ needed
-
-    // 2) Bind derived classes referencing the base
-    py::class_<intproj::FeatureCountTrades, intproj::BaseFeature>(m, "FeatureCountTrades")
+    py::class_<btcpipe::FeatureCountTrades, btcpipe::BaseFeature>(m, "FeatureCountTrades")
       .def(py::init<>())
-      .def("compute_feature", &intproj::FeatureCountTrades::compute_feature);
+      .def("compute_feature", &btcpipe::FeatureCountTrades::compute_feature);
 
-    py::class_<intproj::FeatureRatioBuys, intproj::BaseFeature>(m, "FeatureRatioBuys")
+    py::class_<btcpipe::FeatureRatioBuys, btcpipe::BaseFeature>(m, "FeatureRatioBuys")
       .def(py::init<>())
-      .def("compute_feature", &intproj::FeatureRatioBuys::compute_feature);
+      .def("compute_feature", &btcpipe::FeatureRatioBuys::compute_feature);
 
-    py::class_<intproj::FeatureRatioSells, intproj::BaseFeature>(m, "FeatureRatioSells")
+    py::class_<btcpipe::FeatureRatioSells, btcpipe::BaseFeature>(m, "FeatureRatioSells")
       .def(py::init<>())
-      .def("compute_feature", &intproj::FeatureRatioSells::compute_feature);
+      .def("compute_feature", &btcpipe::FeatureRatioSells::compute_feature);
 
-    py::class_<intproj::FeatureVolumeWindow, intproj::BaseFeature>(m, "FeatureVolumeWindow")
+    // Stateful: keeps a rolling window across calls, so each pass over a tick
+    // sequence needs its own instance.
+    py::class_<btcpipe::FeatureVolumeWindow, btcpipe::BaseFeature>(m, "FeatureVolumeWindow")
       .def(py::init<>())
-      .def("compute_feature", &intproj::FeatureVolumeWindow::compute_feature);
+      .def("compute_feature", &btcpipe::FeatureVolumeWindow::compute_feature);
 
-    py::class_<intproj::DataClient>(m, "DataClient")
+    // Computes all four features in a single boundary crossing.
+    py::class_<btcpipe::FeatureSet>(m, "FeatureSet")
+      .def(py::init<>())
+      .def("compute", &btcpipe::FeatureSet::compute, py::arg("data"));
+
+    py::class_<btcpipe::DataClient>(m, "DataClient")
       .def(py::init<>())
       .def(
         "get_data",
-        [](const intproj::DataClient &self, const std::string &symbol, bool sandbox) {
-            intproj::DataResult r = self.get_data(symbol, sandbox);
-            // Return None when midprice is not set
+        [](const btcpipe::DataClient &self, const std::string &symbol, bool sandbox) {
+            btcpipe::DataResult r = self.get_data(symbol, sandbox);
+            // Midprice is absent when either side of the book had no trades.
             py::object midobj = r.midprice.has_value() ? py::cast(*r.midprice) : py::none();
             return py::make_tuple(r.buys, r.sells, midobj);
         },

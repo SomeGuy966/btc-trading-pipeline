@@ -6,8 +6,8 @@
 #include <tuple>
 #include <vector>
 
-using intproj::FeatureRatioBuys;
-using intproj::test::make_trade;
+using btcpipe::FeatureRatioBuys;
+using btcpipe::test::make_trade;
 
 // alias
 static std::tuple<float, float, bool> T(float price, float vol, bool is_buy)

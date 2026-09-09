@@ -9,14 +9,14 @@
 #include <tuple>
 #include <vector>
 
-namespace intproj {
+namespace btcpipe {
 
 // Maintains a sliding window (last 5 ticks) of total traded volume.
 // Each call consumes one tick (vector of trades) and returns the window sum.
 class FeatureVolumeWindow : public BaseFeature
 {
   public:
-    float compute_feature(std::vector<std::tuple<float, float, bool>> data) override
+    float compute_feature(const Trades &data) override
     {
         // Sum volume for the current tick (second element of the tuple).
         float this_tick_volume = 0.0f;
@@ -56,4 +56,4 @@ class FeatureVolumeWindow : public BaseFeature
     }
 };
 
-}// namespace intproj
+}// namespace btcpipe

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Tuple, TypeAlias
 import pytest
-from pysrc import intern
+from pysrc import cppcore
 
 
 Trade: TypeAlias = Tuple[float, float, bool]
@@ -20,12 +20,12 @@ def make_tick(trades: List[Trade]) -> List[Trade]:
 
 
 def test_sanity_feature_count_trades() -> None:
-    f = intern.FeatureCountTrades()
+    f = cppcore.FeatureCountTrades()
     assert f.compute_feature([]) == pytest.approx(0.0)
 
 
 def test_feature_count_trades_basic() -> None:
-    f = intern.FeatureCountTrades()
+    f = cppcore.FeatureCountTrades()
     assert f.compute_feature(make_tick([])) == pytest.approx(0.0)
     assert f.compute_feature(make_tick([(1, 1, True)])) == pytest.approx(1.0)
     assert f.compute_feature(make_tick([(2, 1, False), (2, 2, True)])) == pytest.approx(
@@ -34,7 +34,7 @@ def test_feature_count_trades_basic() -> None:
 
 
 def test_feature_ratio_buys_basic() -> None:
-    f = intern.FeatureRatioBuys()
+    f = cppcore.FeatureRatioBuys()
     # empty outputs 0.0 by convention
     assert f.compute_feature(make_tick([])) == pytest.approx(0.0)
     # 1/2 buys
@@ -48,7 +48,7 @@ def test_feature_ratio_buys_basic() -> None:
 
 
 def test_feature_ratio_sells_basic() -> None:
-    f = intern.FeatureRatioSells()
+    f = cppcore.FeatureRatioSells()
     # empty outputs 0.0 by convention
     assert f.compute_feature(make_tick([])) == pytest.approx(0.0)
     # 1/2 sells
@@ -62,7 +62,7 @@ def test_feature_ratio_sells_basic() -> None:
 
 
 def test_feature_volume_window_sliding_sum_last_5_ticks() -> None:
-    f = intern.FeatureVolumeWindow()
+    f = cppcore.FeatureVolumeWindow()
 
     # Each call is one tick; sum volumes over the last 5 ticks.
     t1 = make_tick([(100, 1, True)])  # volume 1
@@ -91,7 +91,7 @@ def test_intern_module_loads() -> None:
 
     # Add build/ so pytest can find the compiled pybind module
     sys.path.insert(0, os.path.abspath("build"))
-    m = importlib.import_module("intern")
+    m = importlib.import_module("cppcore")
     assert hasattr(m, "DataClient")
     dc = m.DataClient()
     assert dc is not None

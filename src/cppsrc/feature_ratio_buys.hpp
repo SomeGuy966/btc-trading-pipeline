@@ -8,14 +8,14 @@
 #include <tuple>
 #include <vector>
 
-namespace intproj {
+namespace btcpipe {
 
 // Computes the ratio of buy-side trades within a tick.
 // Returns 0.0f when there are no trades.
 class FeatureRatioBuys : public BaseFeature
 {
   public:
-    float compute_feature(std::vector<std::tuple<float, float, bool>> data) override
+    float compute_feature(const Trades &data) override
     {
         const std::size_t total = data.size();
         if (total == 0) return 0.0f;
@@ -31,4 +31,4 @@ class FeatureRatioBuys : public BaseFeature
     }
 };
 
-}// namespace intproj
+}// namespace btcpipe

@@ -38,6 +38,3 @@ requests-mock = "^1.12.1"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.ruff.lint.per-file-ignores]
-# ignore unused imports since they are helpful for the template
-"*.py" = ["F401"]

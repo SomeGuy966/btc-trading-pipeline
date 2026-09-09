@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace intproj {
+namespace btcpipe {
 
 
 using Order = std::pair<double, double>;
@@ -233,4 +233,4 @@ class DataClient
     }
 };
 
-}// namespace intproj
+}// namespace btcpipe

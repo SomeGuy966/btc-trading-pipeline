@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from typing import List, Tuple
-from pysrc import intern
+from pysrc import cppcore
 
 Trade = Tuple[float, float, bool]
 Tick = List[Trade]
@@ -25,7 +25,7 @@ def make_tick(trades: Tick) -> Tick:
     ],
 )
 def test_count_trades_param(trades: Tick, expected: float) -> None:
-    f = intern.FeatureCountTrades()
+    f = cppcore.FeatureCountTrades()
     assert f.compute_feature(make_tick(trades)) == pytest.approx(expected)
 
 
@@ -42,7 +42,7 @@ def test_count_trades_param(trades: Tick, expected: float) -> None:
     ],
 )
 def test_ratio_buys_param(trades: Tick, expected: float) -> None:
-    f = intern.FeatureRatioBuys()
+    f = cppcore.FeatureRatioBuys()
     assert f.compute_feature(make_tick(trades)) == pytest.approx(expected)
 
 
@@ -58,7 +58,7 @@ def test_ratio_buys_param(trades: Tick, expected: float) -> None:
     ],
 )
 def test_ratio_sells_param(trades: Tick, expected: float) -> None:
-    f = intern.FeatureRatioSells()
+    f = cppcore.FeatureRatioSells()
     assert f.compute_feature(make_tick(trades)) == pytest.approx(expected)
 
 
@@ -66,7 +66,7 @@ def test_ratio_sells_param(trades: Tick, expected: float) -> None:
 
 
 def test_volume_window_rollover() -> None:
-    f = intern.FeatureVolumeWindow()
+    f = cppcore.FeatureVolumeWindow()
 
     # volumes per tick: 1,2,3,4,5,6; rolling last-5 sums should be: 1,3,6,10,15,20
     ticks: List[Tick] = [
