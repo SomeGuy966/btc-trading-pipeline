@@ -1,5 +1,10 @@
 # BTC-USD Trading Research Pipeline
 
+[![Pytest](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/pytest.yml/badge.svg)](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/pytest.yml)
+[![Ruff + Mypy](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/ruffmypy.yml/badge.svg)](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/ruffmypy.yml)
+[![C++ Tests](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/cpp-tests.yml/badge.svg)](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/cpp-tests.yml)
+[![Clang Format & Tidy](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/clang-format-tidy.yml/badge.svg)](https://github.com/SomeGuy966/btc-trading-pipeline/actions/workflows/clang-format-tidy.yml)
+
 A hybrid **C++/Python** pipeline that ingests live trade data from the Gemini exchange, computes
 order-flow features in C++, runs online Lasso regression to predict short-horizon midprice returns,
 and scores those predictions against realized returns.
@@ -88,11 +93,17 @@ make analyze     # correlation report over logged predictions
 
 ## Testing
 
-**65 tests** — 36 `pytest`, 29 GoogleTest.
+**72 tests** — 43 `pytest`, 29 GoogleTest, all green in CI.
 
 - Unit tests mock the HTTP layer with `MagicMock`, so the suite runs offline and deterministically
-- A separate integration test hits the live Gemini endpoint to validate response schema
+- The live-endpoint integration test validating Gemini's response schema is env-gated, keeping CI
+  hermetic rather than dependent on a third-party service being reachable
 - C++ tests cover feature edge cases: empty ticks, single-sided flow, and rolling-window rollover
+
+```bash
+make test                          # unit suites (C++ and Python)
+RUN_INTEGRATION=1 poetry run pytest src/pysrc/test/slower_tests   # live-endpoint test
+```
 
 ## Continuous integration
 
