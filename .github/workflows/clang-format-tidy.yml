@@ -1,0 +1,44 @@
+name: Clang Format & Tidy
+
+on:
+  push:
+    branches: ["tony/dummy-pr"]
+  pull_request:
+    branches: ["main", "tony/dummy-pr"]
+
+jobs:
+  clang_checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build clang clang-tidy clang-format
+      
+      - name: Install Poetry & Conan
+        run: |
+          python -m pip install --upgrade pip pipx
+          python -m pipx ensurepath
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          pipx install poetry
+          pipx install "conan>=2.0.0"
+          conan --version
+          conan profile detect || true
+
+      - name: Build (for compile_commands.json)
+        run: |
+          mkdir -p build
+          make build
+
+      - name: clang-format (enforce)
+        run: |
+          find src/cppsrc -name '*.cpp' -o -name '*.hpp' \
+            | xargs clang-format --style=file --dry-run -Werror
+
+      - name: clang-tidy (report only)
+        run: |
+          run-clang-tidy -j "$(nproc)" -p build
+
+      

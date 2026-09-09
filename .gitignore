@@ -1,0 +1,10 @@
+.cache
+CMakeUserPresets.json
+build
+__pycache__
+.pytest_cache
+.ruff_cache
+.mypy_cache
+*.so
+src/pysrc/predictions.txt
+src/pysrc/targets.txt

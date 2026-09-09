@@ -1,0 +1,27 @@
+name: Ruff + Mypy
+
+on:
+  push:
+    branches: ["tony/dummy-pr"]
+  pull_request:
+    branches: ["main", "tony/dummy-pr"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Poetry
+        run: |
+          python -m pip install --upgrade pip pipx
+          python -m pipx ensurepath
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          pipx install poetry
+          poetry install --no-interaction --no-ansi
+
+      - name: Lint (mypy + ruff)
+        run: make lint
