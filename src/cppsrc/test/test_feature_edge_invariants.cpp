@@ -11,10 +11,10 @@
 #include <tuple>
 #include <vector>
 
-using intproj::FeatureVolumeWindow;
-using intproj::FeatureRatioBuys;
-using intproj::FeatureRatioSells;
-using intproj::test::make_trade;
+using btcpipe::FeatureVolumeWindow;
+using btcpipe::FeatureRatioBuys;
+using btcpipe::FeatureRatioSells;
+using btcpipe::test::make_trade;
 
 
 using TradeTriple = std::tuple<float, float, bool>;

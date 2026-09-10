@@ -85,15 +85,86 @@ correlation, MSE, and MAE over the aligned series.
 make install     # conan install + poetry install
 make build       # cmake configure + build the pybind module
 make test        # C++ GoogleTest suite + pytest
-make run-main    # live loop against Gemini (polls every 10s)
+make record      # capture a live session to ticks.jsonl
+make replay      # re-run the pipeline offline from ticks.jsonl
 make analyze     # correlation report over logged predictions
+make benchmark   # C++ vs Python feature computation
 ```
+
+`make run` does a bounded live run (20 ticks) if you want to watch it against
+the real endpoint. Every entry point takes flags directly too:
+
+```bash
+python -m pysrc.main --replay ticks.jsonl --max-ticks 100 --quiet
+python -m pysrc.benchmark --ticks 20000
+```
+
+---
+
+## Reproducible runs
+
+A live run is bounded by how fast the exchange produces data: at a 10-second
+poll interval, the model needs ~2 minutes before it makes a first prediction.
+That is a poor way to evaluate anything, so ticks can be recorded once and
+replayed instantly:
+
+```bash
+make record    # ~10 minutes of live polling -> ticks.jsonl
+make replay    # the same session, start to finish, in under a second
+make analyze
+```
+
+Replay reads a JSONL file — one tick per line — and drives the identical code
+path as live mode, so results are deterministic and require no network access.
+This is also what the benchmark runs against.
+
+## Benchmark
+
+`pysrc/benchmark.py` compares three implementations of the same four features
+and checks they produce identical values *before* reporting any timing, so the
+comparison is between things that actually agree. The C++ features use 32-bit
+floats against Python's 64-bit doubles, so agreement is asserted to a relative
+tolerance rather than bit-for-bit.
+
+```bash
+make benchmark                             # synthetic ticks, no recording needed
+python -m pysrc.benchmark --replay ticks.jsonl
+```
+
+20,000 ticks x 50 trades (1M trades), Apple M-series, best of 5 passes:
+
+| variant | per tick | vs Python |
+| --- | --- | --- |
+| Python reference | 2.72 us | 1.00x |
+| C++, one call per feature | 4.14 us | **0.66x — slower** |
+| C++, batched via `FeatureSet` | **1.17 us** | **2.32x** |
+
+The middle row is the interesting one. Calling the four C++ features separately
+is *slower than pure Python*, because each call marshals the tick's trade list
+across the pybind11 boundary again, and that marshalling costs far more than the
+arithmetic it enables. Four crossings per tick, four conversions of the same
+data.
+
+Two changes fixed it:
+
+- `compute_feature` takes its trades by `const&` instead of by value, removing a
+  full copy per call.
+- `FeatureSet` computes all four features in a single crossing, so a tick is
+  converted once rather than four times.
+
+That took the C++ path from **0.66x to 2.32x** against Python — a **3.5x**
+improvement over the per-call version, and the reason `make_phi` uses
+`FeatureSet` rather than the individual feature classes.
+
+The lesson generalizes: at this granularity the boundary is the bottleneck, not
+the compute. Moving more work per crossing beats optimizing what happens inside
+one.
 
 ---
 
 ## Testing
 
-**72 tests** — 43 `pytest`, 29 GoogleTest, all green in CI.
+**85 tests** — 56 `pytest`, 29 GoogleTest, all green in CI.
 
 - Unit tests mock the HTTP layer with `MagicMock`, so the suite runs offline and deterministically
 - The live-endpoint integration test validating Gemini's response schema is env-gated, keeping CI
@@ -127,13 +198,16 @@ src/
 ├── cppsrc/                     # header-only C++ core
 │   ├── base_feature.hpp        # abstract feature interface
 │   ├── feature_*.hpp           # feature implementations
+│   ├── feature_set.hpp         # all four features in one boundary crossing
 │   ├── data_client.hpp         # C++ REST ingest (cpr + nlohmann/json)
 │   ├── main.cpp                # pybind11 module definition
 │   └── test/                   # GoogleTest suites
 └── pysrc/                      # Python orchestration
     ├── data_client.py          # Python REST ingest
     ├── model.py                # online Lasso wrapper
-    ├── main.py                 # live tick loop
+    ├── main.py                 # tick loop: live, record, or replay
+    ├── benchmark.py            # C++ vs Python feature timing
+    ├── cppcore.pyi             # type stubs for the compiled extension
     ├── evaluate_predictions.py # correlation / MSE / MAE report
     └── test/                   # pytest suites
 ```
@@ -151,6 +225,16 @@ easier inlining across translation units — a reasonable trade at this scale.
 **Why port ingest to C++.** The Python and C++ clients sit behind the same pybind interface, so
 the orchestration layer is unchanged by the swap. This makes the two paths directly comparable and
 keeps the option of moving more of the hot path across the boundary.
+
+**Stateful features and matrix rebuilds.** `FeatureVolumeWindow` keeps a rolling
+5-tick buffer, and the model rebuilds its design matrix on every tick. Sharing
+one feature instance across rebuilds would re-feed ticks it had already
+consumed, so the window would no longer mean "the last five ticks" at all. The
+inference path therefore takes a *factory* rather than a feature function, and
+builds a fresh feature set per matrix, feeding each tick exactly once in order.
+`test_feature_state.py` pins this down, and the determinism test in
+`test_model.py` is the regression guard: identical input must give identical
+output, which only holds if no state survives between calls.
 
 **Why online learning.** Market relationships are non-stationary. Refitting on a short rolling
 window each tick adapts to regime changes, at the cost of higher variance in the fitted

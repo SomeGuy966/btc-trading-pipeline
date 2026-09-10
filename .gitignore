@@ -8,3 +8,4 @@ __pycache__
 *.so
 src/pysrc/predictions.txt
 src/pysrc/targets.txt
+ticks.jsonl

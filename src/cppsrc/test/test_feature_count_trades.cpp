@@ -6,8 +6,8 @@
 #include <tuple>
 #include <vector>
 
-using intproj::FeatureCountTrades;
-using intproj::test::make_trade;
+using btcpipe::FeatureCountTrades;
+using btcpipe::test::make_trade;
 
 
 static std::tuple<float, float, bool> T(float price, float vol, bool is_buy)

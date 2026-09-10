@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 import numpy as np
 
-PRED_PATH = Path("src/pysrc/predictions.txt")
-TGT_PATH = Path("src/pysrc/targets.txt")
+PRED_PATH = Path(__file__).resolve().parent / "predictions.txt"
+TGT_PATH = Path(__file__).resolve().parent / "targets.txt"
 
 
 def _read_numbers(path: Path) -> List[float]:

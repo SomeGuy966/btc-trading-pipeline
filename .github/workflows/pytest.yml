@@ -70,7 +70,7 @@ jobs:
             -DCMAKE_PREFIX_PATH="${{ steps.conan_paths.outputs.genpfx }}"
 
       - name: Build pybind11 Module
-        run: cmake --build build -j --target intern
+        run: cmake --build build -j --target cppcore
 
       - name: Run Pytest
         run: poetry run pytest -q src/pysrc/test

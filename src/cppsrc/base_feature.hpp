@@ -1,18 +1,18 @@
 // src/cppsrc/base_feature.hpp
 #pragma once
 
-#include <tuple>
-#include <vector>
+#include "trade_types.hpp"
 
-namespace intproj {
+namespace btcpipe {
 
 class BaseFeature
 {
   public:
-    virtual float compute_feature(std::vector<std::tuple<float, float, bool>> data) = 0;
+    // Taken by const reference: passing by value copied the whole tick on every
+    // call, which dominated the cost of the arithmetic itself.
+    virtual float compute_feature(const Trades &data) = 0;
 
     virtual ~BaseFeature() = default;
 };
 
-
-}// namespace intproj
+}// namespace btcpipe

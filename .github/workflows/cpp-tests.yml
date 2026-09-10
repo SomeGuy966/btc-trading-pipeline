@@ -36,4 +36,4 @@ jobs:
       - name: Run C++ tests
         run: |
           cd build
-          ./intern_tests
+          ./cpp_tests
